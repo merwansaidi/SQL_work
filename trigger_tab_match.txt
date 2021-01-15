@@ -1,0 +1,137 @@
+-- TRIGGER 
+CREATE OR REPLACE TRIGGER Trig_Add_Update_Match AFTER INSERT OR UPDATE ON Match 
+FOR EACH ROW
+DECLARE
+    ref_EquipeDom NUMBER(3);
+    ref_EquipeExt NUMBER(3);
+
+    score_Dom_Old NUMBER(2);
+    score_Ext_Old NUMBER(2);
+    score_Dom_New NUMBER(2);
+    score_Ext_New NUMBER(2);
+
+BEGIN
+    IF INSERTING THEN
+        UPDATE Equipe 
+        SET nb_Matchs_Joues = nb_Matchs_Joues + 1
+        WHERE ref_Equipe = :NEW.equipe_Exterieure;
+
+        UPDATE Equipe 
+        SET nb_Matchs_Joues = nb_Matchs_Joues + 1
+        WHERE ref_Equipe = :NEW.equipe_Domicile;
+        
+        IF      :NEW.score_Equipe_Domicile = :NEW.score_Equipe_Exterieure THEN
+            UPDATE Equipe 
+            SET nb_Matchs_Null = nb_Matchs_Null + 1
+            WHERE ref_Equipe = :NEW.equipe_Domicile
+                OR ref_Equipe = :NEW.equipe_Exterieure;
+        ELSIF   :NEW.score_Equipe_Domicile > :NEW.score_Equipe_Exterieure THEN
+            UPDATE Equipe 
+            SET nb_Victoires = nb_Victoires + 1
+            WHERE ref_Equipe = :NEW.equipe_Domicile;
+
+            UPDATE Equipe 
+            SET nb_Defaites = nb_Defaites + 1
+            WHERE ref_Equipe = :NEW.equipe_Exterieure;
+        ELSE 
+            UPDATE Equipe 
+            SET nb_Victoires = nb_Victoires + 1
+            WHERE ref_Equipe = :NEW.equipe_Exterieure;
+
+            UPDATE Equipe 
+            SET nb_Defaites = nb_Defaites + 1
+            WHERE ref_Equipe = :NEW.equipe_Domicile;
+        END IF;
+
+    END IF;
+
+    IF UPDATING THEN
+        score_Dom_Old := :OLD.score_Equipe_Domicile;
+        score_Ext_Old := :OLD.score_Equipe_Exterieure;
+        score_Dom_New := :NEW.score_Equipe_Domicile;
+        score_Ext_New := :NEW.score_Equipe_Exterieure;
+
+        IF      score_Dom_Old = score_Ext_Old THEN          -- Si on avait un match nul:
+            IF   score_Dom_New > score_Ext_New THEN         --      Et qu'on passe a une victoire de Dom.
+                UPDATE Equipe 
+                SET nb_Matchs_Null = nb_Matchs_Null - 1
+                WHERE ref_Equipe = :NEW.equipe_Domicile
+                    OR ref_Equipe = :NEW.equipe_Exterieure;
+                
+                UPDATE Equipe 
+                SET nb_Victoires = nb_Victoires + 1
+                WHERE ref_Equipe = :NEW.equipe_Domicile;
+
+                UPDATE Equipe 
+                SET nb_Defaites = nb_Defaites + 1
+                WHERE ref_Equipe = :NEW.equipe_Exterieure;
+            ELSE                                            --      Ou une victoire de Ext.
+                UPDATE Equipe 
+                SET nb_Matchs_Null = nb_Matchs_Null - 1
+                WHERE ref_Equipe = :NEW.equipe_Domicile
+                    OR ref_Equipe = :NEW.equipe_Exterieure;
+                
+                UPDATE Equipe 
+                SET nb_Victoires = nb_Victoires + 1
+                WHERE ref_Equipe = :NEW.equipe_Exterieure;
+
+                UPDATE Equipe 
+                SET nb_Defaites = nb_Defaites + 1
+                WHERE ref_Equipe = :NEW.equipe_Domicile;
+            END IF;
+        
+        ELSIF   score_Dom_Old > score_Ext_Old THEN          -- Si on avait une victoire de Dom:
+            IF score_Dom_New = score_Ext_New THEN           --      Et qu'on passe a un match nul.
+                UPDATE Equipe
+                SET nb_Matchs_Null = nb_Matchs_Null + 1
+                WHERE ref_Equipe = :NEW.equipe_Domicile
+                    OR ref_Equipe = :NEW.equipe_Exterieure;
+                
+                UPDATE Equipe 
+                SET nb_Victoires = nb_Victoires - 1
+                WHERE ref_Equipe = :NEW.equipe_Domicile;
+
+                UPDATE Equipe 
+                SET nb_Defaites = nb_Defaites - 1
+                WHERE ref_Equipe = :NEW.equipe_Exterieure;
+            ELSIF score_Dom_New < score_Ext_New THEN        --      Ou une victoire de Ext.
+                UPDATE Equipe 
+                SET nb_Victoires = nb_Victoires - 1, nb_Defaites = nb_Defaites + 1
+                WHERE ref_Equipe = :NEW.equipe_Domicile;
+
+                UPDATE Equipe 
+                SET nb_Victoires = nb_Victoires + 1, nb_Defaites = nb_Defaites - 1
+                WHERE ref_Equipe = :NEW.equipe_Exterieure;
+            END IF;
+
+        
+        ELSE                                                -- Si on avait une victoire de Ext:
+            IF score_Dom_New = score_Ext_New THEN           --      Et qu'on passe a un match nul.
+                UPDATE Equipe
+                SET nb_Matchs_Null = nb_Matchs_Null + 1
+                WHERE ref_Equipe = :NEW.equipe_Domicile
+                    OR ref_Equipe = :NEW.equipe_Exterieure;
+                
+                UPDATE Equipe 
+                SET nb_Victoires = nb_Victoires - 1
+                WHERE ref_Equipe = :NEW.equipe_Exterieure;
+
+                UPDATE Equipe 
+                SET nb_Defaites = nb_Defaites - 1
+                WHERE ref_Equipe = :NEW.equipe_Domicile;
+          
+  ELSIF score_Dom_New > score_Ext_New THEN        --      Et qu'on passe a une victoire de Dom.
+                UPDATE Equipe 
+                SET nb_Victoires = nb_Victoires + 1, nb_Defaites = nb_Defaites - 1
+                WHERE ref_Equipe = :NEW.equipe_Domicile;
+
+                UPDATE Equipe 
+                SET nb_Victoires = nb_Victoires - 1, nb_Defaites = nb_Defaites + 1
+                WHERE ref_Equipe = :NEW.equipe_Exterieure;
+            END IF; 
+        END IF;
+    END IF;
+END;
+/
+
+

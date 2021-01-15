@@ -1,0 +1,1 @@
+imp integ/integ  tables=temp_stat file=c:\temp\exp_stats.dmp  log=c:\temp\imp_stats.log

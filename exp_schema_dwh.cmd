@@ -1,0 +1,1 @@
+exp integ/integ  owner=dwh file=c:\temp\exp_schema_dwh.dmp  log=c:\temp\exp_schema_dwh.log

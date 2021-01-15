@@ -1,0 +1,1 @@
+exp dwh/dwh  tables=equipe, match, logiciel, poste, segment, installer, salle, types, tab_poste_gen, calendrier file=c:\temp\exp_dwh.dmp  log=c:\temp\exp_dwh.log
